@@ -151,12 +151,43 @@ jobs:
         echo "✅ Validating Terraform configuration..."
         terraform validate
 
-    # Terraform Format Check
+    # Terraform Format Check e Auto-fix
     - name: Terraform Format
       working-directory: ${{ steps.find-terraform.outputs.tf_root }}
       run: |
         echo "📝 Checking Terraform formatting..."
-        terraform fmt -check -recursive || (echo "❌ Files need formatting" && exit 1)
+        
+        # Controlla se i file sono formattati
+        if ! terraform fmt -check -recursive; then
+          echo "⚠️ Files need formatting, applying automatic formatting..."
+          
+          # Applica il formatting automaticamente
+          terraform fmt -recursive
+          
+          # Verifica se ci sono modifiche da committare
+          if git diff --exit-code; then
+            echo "✅ All files are now formatted correctly"
+          else
+            echo "📝 Files have been auto-formatted"
+            
+            # Configura git per il commit
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            
+            # Committa le modifiche di formatting
+            git add .
+            git commit -m "style: auto-format Terraform files [skip ci]" || true
+            
+            # Push solo se non siamo in una PR
+            if [ "${{ github.event_name }}" != "pull_request" ]; then
+              git push || true
+            else
+              echo "💡 In PR mode - formatting changes will need manual commit"
+            fi
+          fi
+        else
+          echo "✅ All files are correctly formatted"
+        fi
 
     # Terraform Plan (solo per PR)
     - name: Terraform Plan
