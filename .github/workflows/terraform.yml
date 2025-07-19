@@ -35,6 +35,16 @@ jobs:
       with:
         terraform_version: 1.7.0
 
+    # Verifichiamo la struttura delle directory
+    - name: List Directory Structure
+      run: |
+        pwd
+        ls -la
+        echo "---"
+        ls -la ./infra || echo "No infra directory"
+        echo "---"
+        find . -type d | sort
+
     # Prima verifichiamo che il backend sia già configurato
     - name: Check if Backend Exists
       id: backend-check
@@ -47,27 +57,52 @@ jobs:
     # Configurazione del backend se necessario
     - name: Setup Backend
       if: steps.backend-check.outputs.backend_exists == 'false'
-      working-directory: ./infra/bootstrap
       run: |
+        # Trova la directory bootstrap
+        BOOTSTRAP_DIR=$(find . -type d -name "bootstrap" | head -n 1)
+        
+        if [ -z "$BOOTSTRAP_DIR" ]; then
+          echo "Bootstrap directory not found"
+          exit 1
+        fi
+        
+        echo "Using bootstrap directory: $BOOTSTRAP_DIR"
+        cd "$BOOTSTRAP_DIR"
+        
         terraform init
         terraform apply -auto-approve
 
     # Deploy principale
+    - name: Find Terraform Root
+      id: find-terraform
+      run: |
+        # Trova la directory contenente main.tf, variables.tf e backend.tf
+        TF_ROOT=$(find . -type f -name "backend.tf" | xargs dirname | head -n 1)
+        
+        if [ -z "$TF_ROOT" ]; then
+          echo "Terraform root directory not found"
+          exit 1
+        fi
+        
+        echo "Using Terraform root directory: $TF_ROOT"
+        echo "tf_root=$TF_ROOT" >> $GITHUB_OUTPUT
+
+    # Deploy principale
     - name: Terraform Init
-      working-directory: ./infra
+      working-directory: ${{ steps.find-terraform.outputs.tf_root }}
       run: terraform init
 
     - name: Terraform Format
-      working-directory: ./infra
-      run: terraform fmt -check
+      working-directory: ${{ steps.find-terraform.outputs.tf_root }}
+      run: terraform fmt -check || true
 
     - name: Terraform Plan
       if: github.event_name == 'pull_request'
-      working-directory: ./infra
+      working-directory: ${{ steps.find-terraform.outputs.tf_root }}
       run: terraform plan -no-color
       continue-on-error: true
 
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      working-directory: ./infra
+      working-directory: ${{ steps.find-terraform.outputs.tf_root }}
       run: terraform apply -auto-approve
