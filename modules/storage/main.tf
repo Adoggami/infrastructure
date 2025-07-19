@@ -4,11 +4,13 @@ resource "azurerm_storage_account" "this" {
   location                 = var.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
+  tags                     = var.tags
 }
 
 resource "azurerm_storage_container" "photos" {
   name                  = "photos"
-  storage_account_id  = azurerm_storage_account.this.id
+  # Usiamo storage_account_name per compatibilità con la versione di GitHub Actions
+  storage_account_name  = azurerm_storage_account.this.name
   container_access_type = "private"
 }
 
