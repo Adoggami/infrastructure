@@ -1,3 +1,4 @@
+ 
 # Adoggami ‑ Infrastruttura *dev* con Terraform
 
 > **Scopo:** definire e mantenere *Infrastructure‑as‑Code* per l’MVP di Adoggami (serverless su Azure).
