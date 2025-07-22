@@ -19,7 +19,7 @@ resource "azurerm_linux_function_app" "this" {
 
   site_config {
     application_stack {
-      python_version = "3.11"
+      node_version = "20"
     }
     
     # Miglioramenti sicurezza base
@@ -28,7 +28,7 @@ resource "azurerm_linux_function_app" "this" {
   }
 
   app_settings = merge({
-    FUNCTIONS_WORKER_RUNTIME = "python"
+    FUNCTIONS_WORKER_RUNTIME = "node"
     POSTGRES_CONN            = var.postgres_conn
     WEBSITE_RUN_FROM_PACKAGE = "1"
   }, var.extra_settings)

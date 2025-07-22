@@ -10,8 +10,3 @@ resource "azurerm_postgresql_flexible_server" "this" {
   
   tags                   = var.tags
 }
-
-output "connection_string" {
-  value     = "postgresql://${var.admin_user}:${var.admin_pass}@${azurerm_postgresql_flexible_server.this.fqdn}:5432/postgres"
-  sensitive = true
-}
